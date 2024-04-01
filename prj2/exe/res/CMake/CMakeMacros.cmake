@@ -1,0 +1,88 @@
+# Borrowed from http://stackoverflow.com/a/3323227/445373
+function(sm_list_replace container index newvalue)
+  list(INSERT ${container} ${index} ${newvalue})
+  math(EXPR __INDEX "${index} + 1")
+  list(REMOVE_AT ${container} ${__INDEX})
+endfunction()
+
+function(sm_append_simple_target_property target property str)
+  get_target_property(current_property ${target} ${property})
+  if(current_property)
+    list(APPEND current_property ${str})
+    set_target_properties(${target}
+                          PROPERTIES ${property} "${current_property}")
+  else()
+    set_target_properties(${target} PROPERTIES ${property} ${str})
+  endif()
+endfunction()
+
+# Borrowed from http://stackoverflow.com/a/7172941/445373 TODO: Upgrade to cmake
+# 3.x so that this function is not needed.
+function(sm_join values glue output)
+  string(REPLACE ";"
+                 "${glue}"
+                 _TMP_STR
+                 "${values}")
+  set(${output} "${_TMP_STR}" PARENT_SCOPE)
+endfunction()
+
+function(sm_add_compile_definition target def)
+  sm_append_simple_target_property(${target} COMPILE_DEFINITIONS ${def})
+endfunction()
+
+function(sm_add_compile_flag target flag)
+  get_target_property(current_property ${target} COMPILE_FLAGS)
+  if(current_property)
+    set(current_property "${current_property} ${flag}")
+    set_target_properties(${target}
+                          PROPERTIES COMPILE_FLAGS "${current_property}")
+  else()
+    set_target_properties(${target} PROPERTIES COMPILE_FLAGS ${flag})
+  endif()
+endfunction()
+
+function(sm_add_link_flag target flag)
+  if(MSVC)
+    # Use a modified form of sm_append_simple_target_property.
+    get_target_property(current_property ${target} LINK_FLAGS)
+    if(current_property)
+      set_target_properties(${target}
+                            PROPERTIES LINK_FLAGS "${current_property} ${flag}")
+    else()
+      set_target_properties(${target} PROPERTIES LINK_FLAGS ${flag})
+    endif()
+  else()
+    sm_append_simple_target_property(${target} LINK_FLAGS ${flag})
+  endif()
+endfunction()
+
+macro(check_compile_features
+      BIN_DIR
+      SOURCE_FILE
+      GREETER
+      GREET_SUCCESS
+      GREET_FAILURE
+      TARGET_VAR
+      ON_SUCCESS)
+  if(NOT DEFINED "${TARGET_VAR}")
+    message(STATUS "${GREETER}")
+    try_compile(${TARGET_VAR} "${BIN_DIR}" SOURCES "${SOURCE_FILE}")
+    if(${TARGET_VAR})
+      if(${ON_SUCCESS})
+        message(STATUS "${GREETER} - ${GREET_SUCCESS}")
+        set(${TARGET_VAR} 1 CACHE INTERNAL "${GREETER}")
+      else()
+        message(STATUS "${GREETER} - ${GREET_FAILURE}")
+        set(${TARGET_VAR} "" CACHE INTERNAL "${GREETER}")
+      endif()
+    else()
+      if(${ON_SUCCESS})
+        message(STATUS "${GREETER} - ${GREET_FAILURE}")
+        set(${TARGET_VAR} 1 CACHE INTERNAL "${GREETER}")
+      else()
+        message(STATUS "${GREETER} - ${GREET_SUCCESS}")
+        set(${TARGET_VAR} "" CACHE INTERNAL "${GREETER}")
+      endif()
+    endif()
+  endif()
+endmacro()

@@ -3,6 +3,27 @@
 	"name": "cmake-best-practices-tests",
 	"version": "1.0",
 	"dependencies": [
-		"gtest"
+		{
+			"name": "alsa",
+			"platform": "linux"
+		},
+		"bzip2",
+		"ffmpeg",
+		"glew",
+		"gtest",
+		"ijg-libjpeg",
+		"jsoncpp",
+		{
+			"name": "libiconv",
+			"platform": "!windows"
+		},
+		"libmad",
+		"libogg",
+		"libpng",
+		"libvorbis",
+		"ms-gsl",
+		"pcre",
+		"yasm",
+		"zlib"
 	]
 }

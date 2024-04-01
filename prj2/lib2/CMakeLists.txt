@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 include("${CMAKE_SOURCE_DIR}/cmake/tree.cmake")
-ade_set_source_files(lib1 CXX_SOURCES CXX_HEADERS_PUBLIC CXX_HEADERS_PRIVATE)
+ade_set_source_files(lib1 C_CXX_SOURCES CXX_HEADERS_PUBLIC CXX_HEADERS_PRIVATE)
 
 # This builds an 'object library', which is basically a collection of object
 # files. The 'lib2' library will link against it.
@@ -27,7 +27,7 @@ ade_set_source_files(lib1 CXX_SOURCES CXX_HEADERS_PUBLIC CXX_HEADERS_PRIVATE)
 # in the same directory as the test executable, so the test executable wouldn't
 # be able to run. Instead, we should build an object library and link the
 # test executable against that.
-add_library(lib2__objlib_internal OBJECT ${CXX_SOURCES})
+add_library(lib2__objlib_internal OBJECT ${C_CXX_SOURCES})
 # See comments of lib2 below. We're going to have to export the object library
 # anyway, so let's create an alias for it too.
 add_library(prj2::lib2__objlib_internal ALIAS lib2__objlib_internal)
@@ -59,7 +59,20 @@ ade_clang_format_git_targets(TARGETS
 set_target_properties(lib2
   PROPERTIES
     CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED ON)
+    CXX_STANDARD_REQUIRED ON
+    # On Windows, symbols have to be explicitly exported and imported (usually
+    # by a macro used inside the library's headers that is defined to
+    # "__declspec(dllexport)" when building the library, and
+    # "__declspec(dllimport)" when using the built library). However,
+    # libtomcrypt doesn't explicitly export its symbols since it's primarily
+    # meant to be built on *nix.
+    # So we'll have to set WINDOWS_EXPORT_ALL_SYMBOLS ON so that CMake
+    # automatically exports all symbols. For global data symbols
+    # (i.e., global variables), we have to tweak the code of libtomcrypt so
+    # that the headers that provide them use "__declspec(dllimport)", as
+    # required by CMake:
+    # https://cmake.org/cmake/help/latest/prop_tgt/WINDOWS_EXPORT_ALL_SYMBOLS.html
+    WINDOWS_EXPORT_ALL_SYMBOLS ON)
 set_target_properties(lib2__objlib_internal
   PROPERTIES
     CXX_STANDARD 17
@@ -81,8 +94,8 @@ else()
   # Default is OFF because this can sometimes have overhead:
   # https://stackoverflow.com/a/15890369/2252948.
   option(lib2_BUILD_WITH_PIC
-	"Whether to build this static library with position-independent code in case it is linked against by a shared library."
-	OFF)
+    "Whether to build this static library with position-independent code in case it is linked against by a shared library."
+    OFF)
 endif()
 
 if(lib2_BUILD_WITH_PIC)
@@ -94,24 +107,31 @@ if(lib2_BUILD_WITH_PIC)
   # `_ZTISt12domain_error@@GLIBCXX_3.4' can not be used when making a
   # shared object; recompile with -fPIC"
   set_target_properties(lib2
-	PROPERTIES
+    PROPERTIES
       POSITION_INDEPENDENT_CODE "${lib2_BUILD_WITH_PIC}")
   set_target_properties(lib2__objlib_internal
-	PROPERTIES
+    PROPERTIES
       POSITION_INDEPENDENT_CODE "${lib2_BUILD_WITH_PIC}")
 endif()
 
 target_compile_definitions(lib2__objlib_internal
   PUBLIC
-	# Unquoted variable expansion; this is on purpose: if the variable is empty
-	# or undefined, we *actually* want this to expand to nothing.
-	${LIB_SHARED_MACRO}
+    # Unquoted variable expansion; this is on purpose: if the variable is empty
+    # or undefined, we *actually* want this to expand to nothing.
+    ${LIB_SHARED_MACRO}
+    # These macros were found in StepMania's "libtomcrypt_VS2008.vcproj". We
+    # don't know what they do, so just add them.
+    _CRT_SECURE_NO_WARNINGS
+    _CRT_NONSTDC_NO_DEPRECATE
+    LTC_SOURCE
+    LTC_NO_TEST
+    LTC_NO_PROTOTYPES
   PRIVATE
     # This macro will be used as part of the compilation of this library, but
     # won't be used for libraries/executables that depend on it. This is
-	# exactly what we want when building shared libraries on Windows: we want
-	# headers to have __declspec(dllexport) when building the library, but
-	# we want headers to have __declspec(dllimport) when using the library.
+    # exactly what we want when building shared libraries on Windows: we want
+    # headers to have __declspec(dllexport) when building the library, but
+    # we want headers to have __declspec(dllimport) when using the library.
     LIB2_EXPORT)
 
 target_sources(lib2__objlib_internal
@@ -124,13 +144,13 @@ target_sources(lib2__objlib_internal
   PUBLIC
     FILE_SET public_headers
     TYPE HEADERS
-	# "src/" is the include directory to use for the headers in this
-	# file set. This also means that the files will be installed without an
-	# initial "src" directory at the begining.
+    # "src/" is the include directory to use for the headers in this
+    # file set. This also means that the files will be installed without an
+    # initial "src" directory at the begining.
     BASE_DIRS src
     FILES ${CXX_HEADERS_PUBLIC}
-	# The headers that are available only for compilation of this library.
-	# Won't be installed.
+  # The headers that are available only for compilation of this library.
+  # Won't be installed.
   PRIVATE
     FILE_SET private_headers
     TYPE HEADERS

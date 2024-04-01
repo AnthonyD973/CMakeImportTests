@@ -2,19 +2,27 @@
 
 cmake_minimum_required(VERSION 3.26)
 
+if(NOT DEFINED CACHE{CMAKE_TOOLCHAIN_FILE})
+  message(STATUS "CMAKE_TOOLCHAIN_FILE is not set; using vcpkg submodule's toolchain file. You may specify this cache/env variable to be another vcpkg clone's toolchain file for further package sharing (-DCMAKE_TOOLCHAIN_FILE=<vcpkg-dir>/scripts/buildsystems/vcpkg.cmake)")
+endif()
 # This is required to be before the first project() call of the CMake build.
 set(CMAKE_TOOLCHAIN_FILE
   "${CMAKE_CURRENT_SOURCE_DIR}/../vcpkg/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file.")
+  CACHE FILEPATH "Vcpkg toolchain file: <vcpkg-dir>/scripts/buildsystems/vcpkg.cmake")
 
 project(prj1
   VERSION 1.0
-  LANGUAGES CXX
+  LANGUAGES CXX C
   HOMEPAGE_URL "https://github.com/AnthonyD973/CMakeBestPracticesTests"
   DESCRIPTION "A library meant to be imported by another CMake project.")
 # Note that this variable is not a special CMake variable.
 set(PROJECT_LICENSE_FILE "${CMAKE_SOURCE_DIR}/../LICENSE.txt"
   CACHE FILEPATH "Path to the license file for this project.")
+
+# https://youtu.be/sBP17HQAQjk?t=1010
+option(CAN_TOUCH_FLAGS
+  "If ON, allows having this CMake configuration touch compile/link flags."
+  ON)
 
 # Reason to do that whether we have tests or not:
 # https://youtu.be/IZXNsim9TWI?t=2426

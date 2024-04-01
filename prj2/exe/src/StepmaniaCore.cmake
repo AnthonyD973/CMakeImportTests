@@ -1,0 +1,335 @@
+# Set up helper variables for future configuring.
+set(SM_SRC_DIR "${CMAKE_CURRENT_LIST_DIR}/exe")
+set(SM_RESOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../res")
+set(SM_EXTERN_DIR "${CMAKE_CURRENT_LIST_DIR}/../extern")
+set(SM_CMAKE_DIR "${SM_RESOURCE_DIR}/CMake")
+set(SM_INSTALLER_DIR "${SM_RESOURCE_DIR}/Installer")
+set(SM_XCODE_DIR "${SM_RESOURCE_DIR}/Xcode")
+set(SM_PROGRAM_DIR "${SM_RESOURCE_DIR}/bin")
+set(SM_BUILD_DIR "${SM_RESOURCE_DIR}/Build")
+set(SM_DOC_DIR "${SM_RESOURCE_DIR}/Docs")
+
+# Include the macros and functions.
+include("${SM_CMAKE_DIR}/CMakeMacros.cmake")
+
+# Make Xcode's 'Archive' build work
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${SM_EXTERN_DIR}")
+
+# TODO: Reconsile the OS dependent naming scheme.
+set(SM_EXE_NAME "StepMania")
+
+# Allow for finding our libraries in a standard location.
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}"
+            "${SM_CMAKE_DIR}/Modules/")
+
+include("${SM_CMAKE_DIR}/DefineOptions.cmake")
+
+include("${SM_CMAKE_DIR}/SMDefs.cmake")
+
+# Put the predefined targets in separate groups.
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+# Checks the standard include directories for c-style headers. We may use C++ in
+# this project, but the check works better with plain C headers.
+include(CheckIncludeFiles)
+check_include_files(alloca.h HAVE_ALLOCA_H)
+check_include_files(assert.h HAVE_ASSERT_H)
+check_include_files(dlfcn.h HAVE_DLFCN_H)
+check_include_files(dirent.h HAVE_DIRENT_H)
+check_include_files(errno.h HAVE_ERRNO_H)
+check_include_files(fcntl.h HAVE_FCNTL_H)
+check_include_files(float.h HAVE_FLOAT_H)
+check_include_files(inttypes.h HAVE_INTTYPES_H)
+check_include_files(limits.h HAVE_LIMITS_H)
+check_include_files(math.h HAVE_MATH_H)
+check_include_files(memory.h HAVE_MEMORY_H)
+check_include_files(stdarg.h HAVE_STDARG_H)
+check_include_files(stddef.h HAVE_STDDEF_H)
+check_include_files(stdint.h HAVE_STDINT_H)
+check_include_files(stdlib.h HAVE_STDLIB_H)
+check_include_files(strings.h HAVE_STRINGS_H)
+check_include_files(string.h HAVE_STRING_H)
+check_include_files(unistd.h HAVE_UNISTD_H)
+check_include_files(sys/param.h HAVE_SYS_PARAM_H)
+check_include_files(sys/stat.h HAVE_SYS_STAT_H)
+check_include_files(sys/types.h HAVE_SYS_TYPES_H)
+check_include_files(sys/utsname.h HAVE_SYS_UTSNAME_H)
+check_include_files(sys/wait.h HAVE_SYS_WAIT_H)
+
+check_include_files(endian.h HAVE_ENDIAN_H)
+check_include_files(sys/endian.h HAVE_SYS_ENDIAN_H)
+check_include_files(machine/endian.h HAVE_MACHINE_ENDIAN_H)
+
+if(HAVE_STDLIB_H AND HAVE_STDARG_H AND HAVE_STRING_H AND HAVE_FLOAT_H)
+  set(STDC_HEADERS 1)
+endif()
+
+include(CheckFunctionExists)
+include(CheckSymbolExists)
+include(CheckCXXSymbolExists)
+
+# Mostly Windows functions.
+check_function_exists(_mkdir HAVE__MKDIR)
+check_cxx_symbol_exists(_snprintf cstdio HAVE__SNPRINTF)
+check_cxx_symbol_exists(stricmp cstring HAVE_STRICMP)
+check_cxx_symbol_exists(_stricmp cstring HAVE__STRICMP)
+
+# Mostly non-Windows functions.
+check_function_exists(fcntl HAVE_FCNTL)
+check_function_exists(fork HAVE_FORK)
+check_function_exists(mkdir HAVE_MKDIR)
+check_cxx_symbol_exists(snprintf cstdio HAVE_SNPRINTF)
+check_cxx_symbol_exists(strcasecmp cstring HAVE_STRCASECMP)
+check_function_exists(waitpid HAVE_WAITPID)
+
+# Mostly universal symbols.
+check_cxx_symbol_exists(powf cmath HAVE_POWF)
+check_cxx_symbol_exists(sqrtf cmath HAVE_SQRTF)
+check_cxx_symbol_exists(sinf cmath HAVE_SINF)
+check_cxx_symbol_exists(tanf cmath HAVE_TANF)
+check_cxx_symbol_exists(cosf cmath HAVE_COSF)
+check_cxx_symbol_exists(acosf cmath HAVE_ACOSF)
+check_cxx_symbol_exists(truncf cmath HAVE_TRUNCF)
+check_cxx_symbol_exists(roundf cmath HAVE_ROUNDF)
+check_cxx_symbol_exists(lrintf cmath HAVE_LRINTF)
+check_cxx_symbol_exists(strtof cstdlib HAVE_STRTOF)
+check_symbol_exists(M_PI math.h HAVE_M_PI)
+check_symbol_exists(size_t stddef.h HAVE_SIZE_T_STDDEF)
+check_symbol_exists(size_t stdlib.h HAVE_SIZE_T_STDLIB)
+check_symbol_exists(size_t stdio.h HAVE_SIZE_T_STDIO)
+check_symbol_exists(posix_fadvise fcntl.h HAVE_POSIX_FADVISE)
+
+if(MINGW)
+  set(NEED_WINDOWS_LOADING_WINDOW TRUE)
+  check_symbol_exists(PBS_MARQUEE commctrl.h HAVE_PBS_MARQUEE)
+  check_symbol_exists(PBM_SETMARQUEE commctrl.h HAVE_PBM_SETMARQUEE)
+endif()
+
+# Checks to make it easier to work with 32-bit/64-bit builds if required.
+include(CheckTypeSize)
+check_type_size(int16_t SIZEOF_INT16_T)
+check_type_size(uint16_t SIZEOF_UINT16_T)
+check_type_size(u_int16_t SIZEOF_U_INT16_T)
+check_type_size(int32_t SIZEOF_INT32_T)
+check_type_size(uint32_t SIZEOF_UINT32_T)
+check_type_size(u_int32_t SIZEOF_U_INT32_T)
+check_type_size(int64_t SIZEOF_INT64_T)
+check_type_size(char SIZEOF_CHAR)
+check_type_size("unsigned char" SIZEOF_UNSIGNED_CHAR)
+check_type_size(short SIZEOF_SHORT)
+check_type_size("unsigned short" SIZEOF_UNSIGNED_SHORT)
+check_type_size(int SIZEOF_INT)
+check_type_size("unsigned int" SIZEOF_UNSIGNED_INT)
+check_type_size(long SIZEOF_LONG)
+check_type_size("unsigned long" SIZEOF_UNSIGNED_LONG)
+check_type_size("long long" SIZEOF_LONG_LONG)
+check_type_size(float SIZEOF_FLOAT)
+check_type_size(double SIZEOF_DOUBLE)
+check_type_size(intptr_t SIZEOF_INTPTR_T)
+check_type_size(pid_t SIZEOF_PID_T)
+check_type_size(size_t SIZEOF_SIZE_T)
+check_type_size(ssize_t SIZEOF_SSIZE_T)
+
+if(WIN32)
+  if(SIZEOF_INTPTR_T EQUAL 8)
+    set(SM_WIN32_ARCH "x64")
+  else()
+    set(SM_WIN32_ARCH "x86")
+  endif()
+endif()
+
+include(TestBigEndian)
+test_big_endian(BIGENDIAN)
+if(${BIGENDIAN})
+  set(SM_ENDIAN_BIG 1)
+else()
+  set(SM_ENDIAN_LITTLE 1)
+endif()
+
+set(SM_IGNORED_PROTOTYPE_CALL 1 CACHE INTERNAL "Have function prototype capabilities")
+# Does not work anymore
+# check_compile_features("${SM_CMAKE_DIR}/TestCode"
+#                        "${SM_CMAKE_DIR}/TestCode/test_prototype.c"
+#                        "Checking for function prototype capabilities"
+#                        "found"
+#                        "not found"
+#                        SM_IGNORED_PROTOTYPE_CALL
+#                        FALSE)
+
+if(NOT SM_IGNORED_PROTOTYPE_CALL)
+  set(HAVE_PROTOTYPES TRUE)
+endif()
+
+set(SM_BUILT_LONG_NAME 1 CACHE INTERNAL "Whether the compiler supports long identifiers")
+# Does not work anymore
+# check_compile_features("${SM_CMAKE_DIR}/TestCode"
+#                        "${SM_CMAKE_DIR}/TestCode/test_external.c"
+#                        "Checking for external name shortening requirements"
+#                        "not needed"
+#                        "needed"
+#                        SM_BUILT_LONG_NAME
+#                        TRUE)
+if(NOT SM_BUILT_LONG_NAME)
+  set(NEED_SHORT_EXTERNAL_NAMES 1)
+endif()
+
+set(SM_BUILT_INCOMPLETE_TYPE 1 CACHE INTERNAL "Whether the compiler rejects incomplete types.")
+# Does not work anymore
+# check_compile_features("${SM_CMAKE_DIR}/TestCode"
+#                        "${SM_CMAKE_DIR}/TestCode/test_broken.c"
+#                        "Checking if incomplete types are broken."
+#                        "not broken"
+#                        "broken"
+#                        SM_BUILT_INCOMPLETE_TYPE
+#                        FALSE)
+
+if(SM_BUILT_INCOMPLETE_TYPE)
+  set(INCOMPLETE_TYPES_BROKEN 1)
+endif()
+
+# Dependencies go here.
+include(ExternalProject)
+
+set(HAS_MP3 TRUE)
+if(NOT WITH_GPL_LIBS)
+  message("Disabling GPL exclusive libraries: no MP3 support.")
+  set(HAS_MP3 OFF)
+endif()
+
+set(HAS_WAV TRUE)
+
+set(HAS_OGG TRUE)
+
+set(HAS_SDL OFF)
+if(WITH_SDL)
+  find_package(SDL2 REQUIRED)
+  set(HAS_SDL TRUE)
+endif()
+
+find_package(nasm)
+find_package(yasm REQUIRED)
+
+if(UNIX)
+  find_package(Iconv REQUIRED)
+endif()
+
+find_package(Threads)
+if(${Threads_FOUND})
+  set(HAS_PTHREAD TRUE)
+  list(APPEND CMAKE_REQUIRED_LIBRARIES pthread)
+  check_symbol_exists(pthread_mutex_timedlock pthread.h
+                      HAVE_PTHREAD_MUTEX_TIMEDLOCK)
+  check_symbol_exists(pthread_cond_timedwait pthread.h
+                      HAVE_PTHREAD_COND_TIMEDWAIT)
+else()
+  set(HAS_PTHREAD FALSE)
+endif()
+
+if(WIN32)
+elseif(MACOSX)
+  set(WITH_CRASH_HANDLER TRUE)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9")
+  set(CMAKE_OSX_DEPLOYMENT_TARGET_FULL "10.9.0")
+
+  find_library(MAC_FRAME_ACCELERATE Accelerate ${CMAKE_SYSTEM_FRAMEWORK_PATH} REQUIRED)
+  find_library(MAC_FRAME_APPKIT AppKit ${CMAKE_SYSTEM_FRAMEWORK_PATH} REQUIRED)
+  find_library(MAC_FRAME_AUDIOTOOLBOX AudioToolbox
+               ${CMAKE_SYSTEM_FRAMEWORK_PATH} REQUIRED)
+  find_library(MAC_FRAME_AUDIOUNIT AudioUnit ${CMAKE_SYSTEM_FRAMEWORK_PATH} REQUIRED)
+  find_library(MAC_FRAME_CARBON Carbon ${CMAKE_SYSTEM_FRAMEWORK_PATH} REQUIRED)
+  find_library(MAC_FRAME_COCOA Cocoa ${CMAKE_SYSTEM_FRAMEWORK_PATH} REQUIRED)
+  find_library(MAC_FRAME_COREAUDIO CoreAudio ${CMAKE_SYSTEM_FRAMEWORK_PATH} REQUIRED)
+  find_library(MAC_FRAME_COREFOUNDATION CoreFoundation
+               ${CMAKE_SYSTEM_FRAMEWORK_PATH} REQUIRED)
+  find_library(MAC_FRAME_CORESERVICES CoreServices
+               ${CMAKE_SYSTEM_FRAMEWORK_PATH} REQUIRED)
+  find_library(MAC_FRAME_FOUNDATION Foundation ${CMAKE_SYSTEM_FRAMEWORK_PATH} REQUIRED)
+  find_library(MAC_FRAME_IOKIT IOKit ${CMAKE_SYSTEM_FRAMEWORK_PATH} REQUIRED)
+  find_library(MAC_FRAME_OPENGL OpenGL ${CMAKE_SYSTEM_FRAMEWORK_PATH} REQUIRED)
+  find_library(MAC_FRAME_SYSTEM System ${CMAKE_SYSTEM_FRAMEWORK_PATH} REQUIRED)
+
+  mark_as_advanced(MAC_FRAME_ACCELERATE
+                   MAC_FRAME_APPKIT
+                   MAC_FRAME_AUDIOTOOLBOX
+                   MAC_FRAME_AUDIOUNIT
+                   MAC_FRAME_CARBON
+                   MAC_FRAME_COCOA
+                   MAC_FRAME_COREAUDIO
+                   MAC_FRAME_COREFOUNDATION
+                   MAC_FRAME_CORESERVICES
+                   MAC_FRAME_FOUNDATION
+                   MAC_FRAME_IOKIT
+                   MAC_FRAME_OPENGL
+                   MAC_FRAME_SYSTEM)
+elseif(LINUX)
+  find_package(GTK3 2.0 REQUIRED)
+
+  set(HAS_X11 FALSE)
+  if(WITH_X11)
+    find_package(X11 REQUIRED)
+    set(HAS_X11 TRUE)
+  endif()
+
+  find_package("ZLIB" REQUIRED)
+  find_package("JPEG" REQUIRED)
+
+  find_package(DL)
+
+  set(HAS_XRANDR FALSE)
+  if(WITH_XRANDR)
+    find_package(Xrandr REQUIRED)
+    set(HAS_XRANDR TRUE)
+  endif()
+
+  set(HAS_Xtst FALSE)
+  if(WITH_Xtst)
+    find_package(Xtst REQUIRED)
+    set(HAS_Xtst TRUE)
+  endif()
+
+  set(HAS_XINERAMA FALSE)
+  if(WITH_XINERAMA)
+    find_package(Xinerama REQUIRED)
+    set(HAS_XINERAMA TRUE)
+  endif()
+
+  find_package(ALSA MODULE REQUIRED)
+  set(HAS_ALSA TRUE)
+
+  set(HAS_JACK FALSE)
+  if(WITH_JACK)
+    find_package(JACK REQUIRED)
+    set(HAS_JACK TRUE)
+  endif()
+
+  set(HAS_OSS FALSE)
+  if(WITH_OSS)
+    find_package(OSS)
+    set(HAS_OSS TRUE)
+  endif()
+
+  if( NOT (HAS_OSS OR HAS_JACK OR HAS_ALSA) )
+    message(
+      FATAL_ERROR
+        "No sound libraries found (or selected). You will require at least one."
+      )
+  else()
+    message(
+      STATUS
+        "-- At least one sound library was found. Do not worry if any were not found at this stage."
+      )
+  endif()
+
+  find_package("Va")
+
+  set(OpenGL_GL_PREFERENCE GLVND)
+  find_package(OpenGL REQUIRED)
+endif(WIN32) # LINUX, APPLE
+
+configure_file("${SM_SRC_DIR}/config.in.hpp"
+               "${SM_SRC_DIR}/generated/config.hpp")
+configure_file("${SM_SRC_DIR}/verstub.in.cpp"
+               "${SM_SRC_DIR}/generated/verstub.cpp")
+
+# Define installer based items for cpack.
+include("${SM_CMAKE_DIR}/CPackSetup.cmake")

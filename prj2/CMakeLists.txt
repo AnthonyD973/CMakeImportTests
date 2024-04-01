@@ -2,19 +2,27 @@
 
 cmake_minimum_required(VERSION 3.26)
 
+if(NOT DEFINED CACHE{CMAKE_TOOLCHAIN_FILE})
+  message(STATUS "CMAKE_TOOLCHAIN_FILE is not set; using vcpkg submodule's toolchain file. You may specify this cache/env variable to be another vcpkg clone's toolchain file for further package sharing (-DCMAKE_TOOLCHAIN_FILE=<vcpkg-dir>/scripts/buildsystems/vcpkg.cmake)")
+endif()
 # This is required to be before the first project() call of the CMake build.
 set(CMAKE_TOOLCHAIN_FILE
   "${CMAKE_CURRENT_SOURCE_DIR}/../vcpkg/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file.")
+  CACHE FILEPATH "Vcpkg toolchain file: <vcpkg-dir>/scripts/buildsystems/vcpkg.cmake")
 
 project(prj2
   VERSION 1.0
-  LANGUAGES CXX
+  LANGUAGES CXX C
   HOMEPAGE_URL "https://github.com/AnthonyD973/CMakeBestPracticesTests"
   DESCRIPTION "A library and executable that import a library made with CMake.")
 # Note that this variable is not a special CMake variable.
 set(PROJECT_LICENSE_FILE "${CMAKE_SOURCE_DIR}/../LICENSE.txt"
   CACHE FILEPATH "Path to the license file for this project.")
+
+# https://youtu.be/sBP17HQAQjk?t=1010
+option(CAN_TOUCH_FLAGS
+  "If ON, allows having this CMake configuration touch compile/link flags. Currently, having this OFF only disables this partially; open issue if needed."
+  ON)
 
 # Reason to do that whether we have tests or not:
 # https://youtu.be/IZXNsim9TWI?t=2426
@@ -28,6 +36,20 @@ set(CMAKE_DEBUG_POSTFIX -d)
 # obviously want to avoid discrepancies as much as possible.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(BZip2 REQUIRED)
+find_package(FFMPEG REQUIRED)
+find_package(GLEW REQUIRED)
+find_package(GTest CONFIG REQUIRED)
+find_package(JPEG REQUIRED)
+find_package(jsoncpp CONFIG REQUIRED)
+find_package(Mad REQUIRED)
+find_package(Ogg CONFIG REQUIRED)
+find_package(PNG REQUIRED)
+find_package(Vorbis CONFIG REQUIRED)
+find_package(Microsoft.GSL CONFIG REQUIRED)
+find_package(unofficial-pcre CONFIG REQUIRED)
+find_package(ZLIB REQUIRED)
 
 add_subdirectory(lib2)
 add_subdirectory(exe)
@@ -131,6 +153,3 @@ set(CPACK_WIX_UPGRADE_GUID "${CPACK_PROJECT_GUID}"
   CACHE STRING "Used in WIX .msi installers. Project GUID.")
 
 include(CPack)
-
-find_package(GTest CONFIG REQUIRED)
-
